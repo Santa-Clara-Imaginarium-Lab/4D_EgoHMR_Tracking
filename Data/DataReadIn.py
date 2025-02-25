@@ -26,7 +26,6 @@ def displayCSVData(file):
     #in a column number after the "Rigid Body Marker" part of the column name, then I know we're onto a new rigidbody, and I'd join
     #those as a whole group so the rigid body and its respective could be the same color in the graph.
     headerLines[1] = ",".join([re.sub("_", "", word) for word in headerLines[1].split(",")])
-    print(headerLines[1])
     
     
     #Split the headers by the comma separating them and strip them of the commas, join them as a list of columns, and finally create a 
@@ -51,9 +50,8 @@ def displayCSVData(file):
             df = df.iloc[:, :columnIndexToBreak]
             break
 
-    print(df.head())
-    print(df.shape[1])
 
+    print(df.head())
     
     return df
 
@@ -70,8 +68,51 @@ class Marker:
 def visualization(df, file):
     #Create a marker dataframe which only includes columns with marker positions (+rotations, error, etc.).
     markerDF = df.drop(['Frame', 'Time'], axis=1)
-
     
+    
+    #Regex's to mimic the pattern of a column header for a limb and a column header for a marker.
+    nonMarkerPattern = re.compile(r'^Rigid Body_([\w]+)_')
+    markerPattern = re.compile(r'^Rigid Body Marker_(Marker\d+)_')
+    
+    
+    #Baically looks through the column header names, and once it sees a different limb, it (SHOULD) split it. Currently
+    #encountering a bug which I've temporarily fixed in the loop just below this.
+    markerGrouping = []
+    newList = []
+    activeLimb = None
+    for c in markerDF.columns:
+        currentLimb = nonMarkerPattern.search(c)
+        currentMarker = markerPattern.search(c)
+        
+        if currentLimb and not currentMarker:
+            limbName = currentLimb.group(1)
+            
+            if(activeLimb and limbName != activeLimb):
+                markerGrouping.append(newList)
+                newList = []
+            activeLimb = limbName
+            newList.append(c)
+            
+        elif (currentMarker and activeLimb):
+            newList.append(c)
+    
+    if newList:
+        markerGrouping.append(newList)
+    
+    #For some reason it was splitting the correct groupings into three indexes in the list, for now I'm going to
+    #simply group them by threes since that works for the example take; however, there may be some bug fixes
+    #I need to address soon.
+    FinalCorrectList = []
+    for x in range(0, int(len(markerGrouping)/3)):
+        correctList = markerGrouping[(3*x)] + markerGrouping[(3*x)+1] + markerGrouping[(3*x)+2]
+        FinalCorrectList.append(correctList)
+    
+    
+    #NOW, for the example csv I used, FinalCorrectList has 5 indexes, which include 5 different limbs. Each
+    #index contains all the rigidbodies for that limb and the individual markers that make it up.
+    print(len(FinalCorrectList))
+    
+
     #Create a marker list holding multiple marker objects with x, y, and z colums each.
     MarkerList = []
     for x in range(int((markerDF.shape[1])/4)):
