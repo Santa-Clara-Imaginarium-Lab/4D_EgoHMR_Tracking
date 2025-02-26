@@ -139,23 +139,31 @@ def visualization(df, file):
         groupedMarkers.append(groupData)
 
     print(groupedMarkers[0])
-    
-    
+
+    # Creating distinct colors for each marker grouping
+    group_colors = [plt.cm.gist_rainbow(x) for x in np.linspace(0, 1, len(secondToLastList))]
+
+    formatted_group_colors = []
+    for color in group_colors:
+        formatted_group_colors.append(tuple(map(float, color)))
+        
+        
     
     #Create a marker list holding multiple marker objects with x, y, and z colums each.
     MarkerList = []
-    for grouping in groupedMarkers:
-        for x in range(int(len(grouping)/4)):
+    marker_colors = []
+    for group_index, grouping in enumerate(groupedMarkers):
+        for x in range(int(len(grouping) / 4)):
             MarkerList.append(Marker(grouping[(4*x)], grouping[((4*x)+1)], grouping[((4*x)+2)]))
-            #print(markerDF.iloc[:, (4*x)], markerDF.iloc[:, ((4*x)+1)], markerDF.iloc[:, ((4*x)+2)])
-            #print(markerDF.shape[1])
+            marker_colors.append(formatted_group_colors[group_index])  # Assigning color to the whole grouping
  
     print(f"Number of markers is {len(MarkerList)}")
 
 
-    #Create the figure and axes.
+    # Create the figure and axes
     figure = plt.figure()
     axes = figure.add_subplot(111, projection='3d')
+
 
     #Set the figure's limits (find min and max values for each axis).
     #First, find min and max values for the x, y, and z of each marker. THEN, find the min and max between the x, y, and z's of the marker objects.
@@ -172,28 +180,28 @@ def visualization(df, file):
 
 
     #Set point = beginning x, y, and z positions, then create text to display frame and timestamp in the 3D figure.
-    point, = axes.plot(initializedX, initializedY, initializedZ, 'bo', markersize=10)
+     # Create the scatter plot with initial values
+    scatter = axes.scatter(initializedX, initializedY, initializedZ, c=marker_colors, s=50)
     text = axes.text2D(0, 0.9, '', transform=axes.transAxes, fontsize=12, verticalalignment='top')
 
     #Creating the colors for each point in the 3D graph.
-    colors = [plt.cm.gist_rainbow(x) for x in np.linspace(0,1,len(MarkerList))]
+    # colors = [plt.cm.gist_rainbow(x) for x in np.linspace(0,1,len(MarkerList))]
     
-    #Converting the np.float64 values to float values.
-    newColors = []
-    for t in colors:
-        tupleList = []
-        for wrongFloat in t:
-            tupleList.append(float(wrongFloat))
-        newColors.append(tuple(tupleList))
+    # #Converting the np.float64 values to float values.
+    # newColors = []
+    # for t in colors:
+    #     tupleList = []
+    #     for wrongFloat in t:
+    #         tupleList.append(float(wrongFloat))
+    #     newColors.append(tuple(tupleList))
 
-    print(type(newColors[:1][0]))        
+    # print(type(newColors[:1][0]))        
 
     #Initialize the figure with initial values and empty text.
     def init():
-        point.set_data(initializedX, initializedY)
-        point.set_3d_properties(initializedZ)
+        scatter._offsets3d = (initializedX, initializedY, initializedZ)  # Set initial positions
         text.set_text('')
-        return point,
+        return scatter, text
 
 
     #Update the figure with the next row of data from the marker object list.
@@ -204,16 +212,15 @@ def visualization(df, file):
         time = df['Time'][frame]
         frame = df['Frame'][frame]
         
-        #Set the new x, y, and z points as well as updating the time and frame.
-        point.set_data(new_x, new_y)
-        point.set_3d_properties(new_z)
+        # Update scatter points with new data
+        scatter._offsets3d = (new_x, new_y, new_z)
         
         #Take the [0] index of newColors since it's technically a tuple within a list.
         #Still not working, however
         #point.set_color(newColors[:frame+1][0])
         text.set_text(f'File is: {file}.\nAt time: {time}, and frame: {frame}.\n')
         
-        return point, text
+        return scatter, text
         
     #Create the animation with the figure, update and initialization functions, frames = length of the dataframe 
     #(total number of rows), and interval at 2 (speed at which the animation updates).
@@ -222,11 +229,12 @@ def visualization(df, file):
     
     
     
-directory = r"CSV Takes"
-for path, folders, files in os.walk(directory):
-    for file in files:
-        print(f"This is file: {file}")
-        newFile = r"CSV Takes/" + file
-        df = displayCSVData(newFile)
-        visualization(df, file)
-    break
+# directory = r"CSV Takes"
+# for path, folders, files in os.walk(directory):
+#     for file in files:
+#         print(f"This is file: {file}")
+#         newFile = r"CSV Takes/" + file
+df = displayCSVData("/Users/tayosmacbook/Desktop/CV Lab Code/CSV Takes/Example Take 2025-02-12.csv")
+newFile = "Motive Modified Take"
+visualization(df, newFile)
+
