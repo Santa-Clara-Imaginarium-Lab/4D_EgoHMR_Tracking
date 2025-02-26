@@ -1,6 +1,7 @@
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 from io import StringIO
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 import os
@@ -80,9 +81,15 @@ def visualization(df, file):
     markerGrouping = []
     newList = []
     activeLimb = None
-    for c in markerDF.columns:
+    index = 0
+    
+    columnIndices = defaultdict(list)
+    
+    for i, c in enumerate(markerDF.columns):
         currentLimb = nonMarkerPattern.search(c)
         currentMarker = markerPattern.search(c)
+        
+        columnIndices[c].append(i)
         
         if currentLimb and not currentMarker:
             limbName = currentLimb.group(1)
@@ -91,35 +98,58 @@ def visualization(df, file):
                 markerGrouping.append(newList)
                 newList = []
             activeLimb = limbName
-            newList.append(c)
+            newList.append((c, i))
             
         elif (currentMarker and activeLimb):
-            newList.append(c)
+            newList.append((c, i))
+        index = index + 1
     
     if newList:
         markerGrouping.append(newList)
+            
     
     #For some reason it was splitting the correct groupings into three indexes in the list, for now I'm going to
     #simply group them by threes since that works for the example take; however, there may be some bug fixes
     #I need to address soon.
-    FinalCorrectList = []
+    secondToLastList = []
     for x in range(0, int(len(markerGrouping)/3)):
         correctList = markerGrouping[(3*x)] + markerGrouping[(3*x)+1] + markerGrouping[(3*x)+2]
-        FinalCorrectList.append(correctList)
+        secondToLastList.append(correctList)
+    
+    print(len(secondToLastList))
     
     
-    #NOW, for the example csv I used, FinalCorrectList has 5 indexes, which include 5 different limbs. Each
-    #index contains all the rigidbodies for that limb and the individual markers that make it up.
-    print(len(FinalCorrectList))
-    
+    #The problem with the above list is that simply pulling from the dataframe returns duplicates for the markers
+    #for each limb, since the markers are basically all named the same. Therefore, we had to index in one of the 
+    #functions above and then use those indexes to pull the correct column marker into the groupedMarkers data.
+    columnCount = defaultdict(int)
+    groupedMarkers = []
+    for g in secondToLastList:
+        groupData = []
+        
+        for column, columnIndex in g:
+            columnCount[column] += 1
+            columnOccurrence = columnCount[column] - 1
+            
+            if columnOccurrence < len(columnIndices[column]):
+                correctIndex = columnIndices[column][columnOccurrence]
+                columnData = markerDF.iloc[:, correctIndex]
+                groupData.append(columnData)
+            
+        groupedMarkers.append(groupData)
 
+    print(groupedMarkers[0])
+    
+    
+    
     #Create a marker list holding multiple marker objects with x, y, and z colums each.
     MarkerList = []
-    for x in range(int((markerDF.shape[1])/4)):
-        MarkerList.append(Marker(markerDF.iloc[:, (4*x)], markerDF.iloc[:, ((4*x)+1)], markerDF.iloc[:, ((4*x)+2)]))
-        #print(markerDF.iloc[:, (4*x)], markerDF.iloc[:, ((4*x)+1)], markerDF.iloc[:, ((4*x)+2)])
-        #print(markerDF.shape[1])
-
+    for grouping in groupedMarkers:
+        for x in range(int(len(grouping)/4)):
+            MarkerList.append(Marker(grouping[(4*x)], grouping[((4*x)+1)], grouping[((4*x)+2)]))
+            #print(markerDF.iloc[:, (4*x)], markerDF.iloc[:, ((4*x)+1)], markerDF.iloc[:, ((4*x)+2)])
+            #print(markerDF.shape[1])
+ 
     print(f"Number of markers is {len(MarkerList)}")
 
 
@@ -189,6 +219,7 @@ def visualization(df, file):
     #(total number of rows), and interval at 2 (speed at which the animation updates).
     animation = FuncAnimation(figure, update, frames = len(df), init_func=init, blit = True, interval = 2)
     plt.show()
+    
     
     
 directory = r"CSV Takes"
