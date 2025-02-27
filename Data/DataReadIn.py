@@ -180,22 +180,10 @@ def visualization(df, file):
 
 
     #Set point = beginning x, y, and z positions, then create text to display frame and timestamp in the 3D figure.
-     # Create the scatter plot with initial values
+    # Create the scatter plot with initial values
     scatter = axes.scatter(initializedX, initializedY, initializedZ, c=marker_colors, s=50)
     text = axes.text2D(0, 0.9, '', transform=axes.transAxes, fontsize=12, verticalalignment='top')
-
-    #Creating the colors for each point in the 3D graph.
-    # colors = [plt.cm.gist_rainbow(x) for x in np.linspace(0,1,len(MarkerList))]
-    
-    # #Converting the np.float64 values to float values.
-    # newColors = []
-    # for t in colors:
-    #     tupleList = []
-    #     for wrongFloat in t:
-    #         tupleList.append(float(wrongFloat))
-    #     newColors.append(tuple(tupleList))
-
-    # print(type(newColors[:1][0]))        
+     
 
     #Initialize the figure with initial values and empty text.
     def init():
@@ -212,19 +200,15 @@ def visualization(df, file):
         time = df['Time'][frame]
         frame = df['Frame'][frame]
         
-        # Update scatter points with new data
+        # Update scatter points and text with new data.
         scatter._offsets3d = (new_x, new_y, new_z)
-        
-        #Take the [0] index of newColors since it's technically a tuple within a list.
-        #Still not working, however
-        #point.set_color(newColors[:frame+1][0])
         text.set_text(f'File is: {file}.\nAt time: {time}, and frame: {frame}.\n')
         
         return scatter, text
         
     #Create the animation with the figure, update and initialization functions, frames = length of the dataframe 
-    #(total number of rows), and interval at 2 (speed at which the animation updates).
-    animation = FuncAnimation(figure, update, frames = len(df), init_func=init, blit = True, interval = 2)
+    #(total number of rows), and interval at 2 (speed at which the animation updates, higher = faster).
+    animation = FuncAnimation(figure, update, frames = len(df), init_func=init, blit = False, interval = 2)
     plt.show()
     
     
