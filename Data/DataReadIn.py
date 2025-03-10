@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import os
 import re
+import matplotlib.colors as mcolors
+from matplotlib.backend_bases import KeyEvent
 
 #Slightly cleaning the CSV data and testing values. Still needs to be updated such that no manual work needs to be done.
 def displayCSVData(file):
@@ -138,27 +140,42 @@ def visualization(df, file):
             
         groupedMarkers.append(groupData)
 
-    print(groupedMarkers[0])
+    #print(groupedMarkers[0])
 
     # Creating distinct colors for each marker grouping
     group_colors = [plt.cm.gist_rainbow(x) for x in np.linspace(0, 1, len(secondToLastList))]
 
-    formatted_group_colors = []
-    for color in group_colors:
-        formatted_group_colors.append(tuple(map(float, color)))
-        
-        
+    formatted_group_colors = [tuple(map(float, color)) for color in group_colors]
+
+    # Function to get the closest color name from the hex values given in the colormap 
+    def get_closest_color(rgb_tuple):
+        min_dist = float('inf')
+        closest_color = None
+        for name, hex_value in mcolors.CSS4_COLORS.items():
+            rgb = mcolors.to_rgba(hex_value)[:3]  # Convert hex to RGB tuple
+            dist = sum((comp1 - comp2) ** 2 for comp1, comp2 in zip(rgb_tuple[:3], rgb))  # Euclidean distance
+            if dist < min_dist:
+                min_dist = dist
+                closest_color = name
+        return closest_color
+            
     
     #Create a marker list holding multiple marker objects with x, y, and z colums each.
+    marker_names = []
+    marker_color_names = []
+
     MarkerList = []
     marker_colors = []
     for group_index, grouping in enumerate(groupedMarkers):
         for x in range(int(len(grouping) / 4)):
-            MarkerList.append(Marker(grouping[(4*x)], grouping[((4*x)+1)], grouping[((4*x)+2)]))
-            marker_colors.append(formatted_group_colors[group_index])  # Assigning color to the whole grouping
- 
-    print(f"Number of markers is {len(MarkerList)}")
-
+            marker = Marker(grouping[(4*x)], grouping[((4*x)+1)], grouping[((4*x)+2)])
+            marker_name =  secondToLastList[group_index][4*x][0]  
+            MarkerList.append(marker)
+            assigned_color = formatted_group_colors[group_index]  # Assign color
+            marker_colors.append(assigned_color)
+            color_name = get_closest_color(assigned_color)
+            marker_names.append(marker_name)
+            marker_color_names.append(color_name)         
 
     # Create the figure and axes
     figure = plt.figure()
@@ -191,9 +208,13 @@ def visualization(df, file):
         text.set_text('')
         return scatter, text
 
+    # making a paused global variable
+    paused = False
 
     #Update the figure with the next row of data from the marker object list.
     def update(frame):
+        if paused:
+            return scatter, text
         new_x = [item.x[frame] for item in MarkerList]
         new_y = [item.y[frame] for item in MarkerList]
         new_z = [item.z[frame] for item in MarkerList]
@@ -202,14 +223,42 @@ def visualization(df, file):
         
         # Update scatter points and text with new data.
         scatter._offsets3d = (new_x, new_y, new_z)
-        text.set_text(f'File is: {file}.\nAt time: {time}, and frame: {frame}.\n')
+         # Count the number of points in the current frame
+        num_points = sum([1 for item in MarkerList if frame < len(item.x) and frame < len(item.y) and frame < len(item.z)])
+
+        if paused:
+            text.set_text(f'File is: {file}.\nAt time: {time}, and frame: {frame}.\nNumber of points: {num_points}\nPAUSED')
+        else:
+            text.set_text(f'File is: {file}.\nAt time: {time}, and frame: {frame}.\nNumber of points: {num_points}')
+
+        
         
         return scatter, text
+    def toggle_pause(event):
+        nonlocal paused
+        if event.key == 'p':  # 'p' for pause/unpause
+            paused = not paused
+            if paused:
+                print("Visualization paused.")
+            else:
+                print("Visualization resumed.")
+
+    def connect_key_press():
+        figure.canvas.mpl_connect('key_press_event', toggle_pause)
+     
+    connect_key_press()
+
         
     #Create the animation with the figure, update and initialization functions, frames = length of the dataframe 
     #(total number of rows), and interval at 2 (speed at which the animation updates, higher = faster).
     animation = FuncAnimation(figure, update, frames = len(df), init_func=init, blit = False, interval = 2)
+    printed_colors = []
+    for name, color in zip(marker_names, marker_color_names):
+        if color not in printed_colors:
+            print(f"Marker: {name}, Color: {color}")
+            printed_colors.append(color)  
     plt.show()
+    
     
     
     
@@ -218,7 +267,7 @@ def visualization(df, file):
 #     for file in files:
 #         print(f"This is file: {file}")
 #         newFile = r"CSV Takes/" + file
-df = displayCSVData("/Users/tayosmacbook/Desktop/CV Lab Code/CSV Takes/Example Take 2025-02-12.csv")
-newFile = "Motive Modified Take"
+df = displayCSVData("/Users/tayosmacbook/Desktop/CV Lab Code/CSV Takes/two points out of bound Take 1 2025-03-03 04.11.56 PM.csv")
+newFile = "Juliana Occlusion"
 visualization(df, newFile)
 
