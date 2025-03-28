@@ -267,7 +267,7 @@ def visualization(df, file):
 #     for file in files:
 #         print(f"This is file: {file}")
 #         newFile = r"CSV Takes/" + file
-df = displayCSVData("/Users/tayosmacbook/Desktop/CV Lab Code/CSV Takes/two points out of bound Take 1 2025-03-03 04.11.56 PM.csv")
+df = displayCSVData("/Users/tayosmacbook/Desktop/CV Lab Code/CSV Takes/Juliana full body take 1.csv")
 newFile = "Juliana Occlusion"
 visualization(df, newFile)
 
